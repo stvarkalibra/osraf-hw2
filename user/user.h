@@ -1,5 +1,9 @@
 #ifndef USER_USER_H
 #define USER_USER_H
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+
 
 #include <kernel/types.h>
 
@@ -28,6 +32,12 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int setkey(int);
+int setkeysecret(int);
+int getkey(void);
+int encr(int);
+int getmajor(int);
+int decr(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

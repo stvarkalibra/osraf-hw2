@@ -8,7 +8,7 @@
 
 
 #define ROOTINO 1  // root i-number
-#define BSIZE 512  // block size
+#define BSIZE 512 // block size
 
 // Disk layout:
 // [ boot block | super block | log | inode blocks |
@@ -28,7 +28,8 @@ struct superblock {
 
 #define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
-#define MAXFILE (NDIRECT + NINDIRECT)
+#define NDOUBLEINDIRECT (BSIZE / sizeof(uint))
+#define MAXFILE (NDIRECT + NINDIRECT + NINDIRECT * NDOUBLEINDIRECT)
 
 // On-disk inode structure
 struct dinode {

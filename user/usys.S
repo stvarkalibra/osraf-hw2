@@ -3,10 +3,10 @@
 
 #define SYSCALL(name) \
 	.globl name; \
-	name: \
+		name: \
 		movl $SYS_ ## name, %eax; \
-		int $T_SYSCALL; \
-		ret
+	int $T_SYSCALL; \
+ret
 
 SYSCALL(fork)
 SYSCALL(exit)
@@ -29,3 +29,9 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+SYSCALL(setkey)
+SYSCALL(setkeysecret)
+SYSCALL(getkey)
+SYSCALL(encr)
+SYSCALL(getmajor)
+SYSCALL(decr)

@@ -63,6 +63,10 @@ sys_dup(void)
 	return fd;
 }
 
+int key = 0;
+int key_is_set = 0;
+int is_key_secret = 0;
+
 int
 sys_read(void)
 {
@@ -70,8 +74,9 @@ sys_read(void)
 	int n;
 	char *p;
 
-	if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0){
 		return -1;
+	}
 	return fileread(f, p, n);
 }
 
@@ -82,8 +87,9 @@ sys_write(void)
 	int n;
 	char *p;
 
-	if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
+	if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0){
 		return -1;
+	}
 	return filewrite(f, p, n);
 }
 
@@ -152,7 +158,7 @@ sys_link(void)
 
 	return 0;
 
-bad:
+	bad:
 	ilock(ip);
 	ip->nlink--;
 	iupdate(ip);
@@ -228,7 +234,7 @@ sys_unlink(void)
 
 	return 0;
 
-bad:
+	bad:
 	iunlockput(dp);
 	end_op();
 	return -1;
@@ -353,15 +359,15 @@ sys_mknod(void)
 
 	begin_op();
 	if((argstr(0, &path)) < 0 ||
-			argint(1, &major) < 0 ||
-			argint(2, &minor) < 0 ||
-			(ip = create(path, T_DEV, major, minor)) == 0){
+		argint(1, &major) < 0 ||
+		argint(2, &minor) < 0 ||
+		(ip = create(path, T_DEV, major, minor)) == 0){
 		end_op();
-		return -1;
-	}
-	iunlockput(ip);
-	end_op();
-	return 0;
+	return -1;
+		}
+		iunlockput(ip);
+		end_op();
+		return 0;
 }
 
 int
@@ -436,5 +442,129 @@ sys_pipe(void)
 	}
 	fd[0] = fd0;
 	fd[1] = fd1;
+	return 0;
+}
+
+
+uint64
+sys_setkey(void)
+{
+	int k;
+	if (argint(0, &k) < 0)
+		return -1;
+
+	key = k;
+	key_is_set = 1;
+
+	return 0;
+}
+
+int sys_getkey() {
+	return key;
+}
+
+int sys_setkeysecret(void) {
+	int x;
+	if (argint(0, &x) < 0)
+		return -1;
+	is_key_secret = x;
+	return 0;
+}
+
+
+#define MAJOR_ENCR 1
+
+uint64
+sys_encr(void)
+{
+	int fd;
+	struct file *f;
+
+	if(argfd(0, &fd, &f) < 0){
+		return -4;
+	}
+
+	struct inode* ip = f->ip;
+	begin_op();
+
+	ilock(ip);
+
+	if(!key_is_set){
+		iunlock(ip);
+		end_op();
+		return -1;
+	}
+
+	if(ip->type == T_DEV){
+		iunlock(ip);
+		end_op();
+		return -2;
+	}
+
+	if(ip->major == MAJOR_ENCR){
+		iunlock(ip);
+		end_op();
+		return -3;
+	}
+
+	ip->major = MAJOR_ENCR;
+	iupdate(ip);
+	iunlock(ip);
+	end_op();
+
+	return 0;
+}
+
+int sys_getmajor(void){
+	int fd;
+	struct file *f;
+
+	if(argfd(0, &fd, &f) < 0){
+		return -4;
+	}
+
+	struct inode* ip = f->ip;
+
+	return ip->major;
+}
+
+uint64
+sys_decr(void)
+{
+	int fd;
+	struct file *f;
+
+	if(argfd(0, &fd, &f) < 0){
+		return -4;
+	}
+
+	struct inode* ip = f->ip;
+	begin_op();
+
+	ilock(ip);
+
+	if(!key_is_set){
+		iunlock(ip);
+		end_op();
+		return -1;
+	}
+
+	if(ip->type == T_DEV){
+		iunlock(ip);
+		end_op();
+		return -2;
+	}
+
+	if(ip->major != MAJOR_ENCR){
+		iunlock(ip);
+		end_op();
+		return -3;
+	}
+
+	ip->major = 0;
+	iupdate(ip);
+	iunlock(ip);
+	end_op();
+
 	return 0;
 }

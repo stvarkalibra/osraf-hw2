@@ -100,29 +100,44 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_setkey(void);
+extern int key;
+extern int key_is_set;
+extern int is_key_secret;
+extern int sys_setkeysecret(void);
+extern int sys_getkey(void);
+extern int sys_encr(void);
+extern int sys_getmajor(void);
+extern int sys_decr(void);
 
 static int (*syscalls[])(void) = {
-[SYS_fork]    sys_fork,
-[SYS_exit]    sys_exit,
-[SYS_wait]    sys_wait,
-[SYS_pipe]    sys_pipe,
-[SYS_read]    sys_read,
-[SYS_kill]    sys_kill,
-[SYS_exec]    sys_exec,
-[SYS_fstat]   sys_fstat,
-[SYS_chdir]   sys_chdir,
-[SYS_dup]     sys_dup,
-[SYS_getpid]  sys_getpid,
-[SYS_sbrk]    sys_sbrk,
-[SYS_sleep]   sys_sleep,
-[SYS_uptime]  sys_uptime,
-[SYS_open]    sys_open,
-[SYS_write]   sys_write,
-[SYS_mknod]   sys_mknod,
-[SYS_unlink]  sys_unlink,
-[SYS_link]    sys_link,
-[SYS_mkdir]   sys_mkdir,
-[SYS_close]   sys_close,
+	[SYS_fork]    sys_fork,
+	[SYS_exit]    sys_exit,
+	[SYS_wait]    sys_wait,
+	[SYS_pipe]    sys_pipe,
+	[SYS_read]    sys_read,
+	[SYS_kill]    sys_kill,
+	[SYS_exec]    sys_exec,
+	[SYS_fstat]   sys_fstat,
+	[SYS_chdir]   sys_chdir,
+	[SYS_dup]     sys_dup,
+	[SYS_getpid]  sys_getpid,
+	[SYS_sbrk]    sys_sbrk,
+	[SYS_sleep]   sys_sleep,
+	[SYS_uptime]  sys_uptime,
+	[SYS_open]    sys_open,
+	[SYS_write]   sys_write,
+	[SYS_mknod]   sys_mknod,
+	[SYS_unlink]  sys_unlink,
+	[SYS_link]    sys_link,
+	[SYS_mkdir]   sys_mkdir,
+	[SYS_close]   sys_close,
+	[SYS_setkey]  sys_setkey,
+	[SYS_setkeysecret]    sys_setkeysecret,
+	[SYS_getkey]    sys_getkey,
+	[SYS_encr]    sys_encr,
+	[SYS_getmajor] sys_getmajor,
+	[SYS_decr] sys_decr,
 };
 
 void
@@ -136,7 +151,7 @@ syscall(void)
 		curproc->tf->eax = syscalls[num]();
 	} else {
 		cprintf("%d %s: unknown sys call %d\n",
-			curproc->pid, curproc->name, num);
+				curproc->pid, curproc->name, num);
 		curproc->tf->eax = -1;
 	}
 }

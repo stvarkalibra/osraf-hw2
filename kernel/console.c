@@ -70,6 +70,7 @@ panic(char *s)
 #define BACKSPACE 0x100
 #define CRTPORT 0x3d4
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
+extern int is_key_secret;
 
 static void
 cgaputc(int c)
@@ -81,14 +82,18 @@ cgaputc(int c)
 	pos = inb(CRTPORT+1) << 8;
 	outb(CRTPORT, 15);
 	pos |= inb(CRTPORT+1);
-
-	if(c == '\n')
+	if(c == '\n'){
+		if(is_key_secret)
+			is_key_secret = 0;
 		pos += 80 - pos%80;
+	}
 	else if(c == BACKSPACE){
 		if(pos > 0) --pos;
-	} else
+	} else if(is_key_secret){
+		crt[pos++] = ('*'&0xff) | 0x0700;  // black on white
+	} else{
 		crt[pos++] = (c&0xff) | 0x0700;  // black on white
-
+	}
 	if(pos < 0 || pos > 25*80)
 		panic("pos under/overflow");
 
@@ -139,34 +144,34 @@ consoleintr(int (*getc)(void))
 	acquire(&cons.lock);
 	while((c = getc()) >= 0){
 		switch(c){
-		case C('P'):  // Process listing.
-			// procdump() locks cons.lock indirectly; invoke later
-			doprocdump = 1;
-			break;
-		case C('U'):  // Kill line.
-			while(input.e != input.w &&
-			      input.buf[(input.e-1) % INPUT_BUF] != '\n'){
-				input.e--;
+			case C('P'):  // Process listing.
+				// procdump() locks cons.lock indirectly; invoke later
+				doprocdump = 1;
+				break;
+			case C('U'):  // Kill line.
+				while(input.e != input.w &&
+					input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+					input.e--;
 				consputc(BACKSPACE);
-			}
-			break;
-		case C('H'): case '\x7f':  // Backspace
-			if(input.e != input.w){
-				input.e--;
-				consputc(BACKSPACE);
-			}
-			break;
-		default:
-			if(c != 0 && input.e-input.r < INPUT_BUF){
-				c = (c == '\r') ? '\n' : c;
-				input.buf[input.e++ % INPUT_BUF] = c;
-				consputc(c);
-				if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
-					input.w = input.e;
-					wakeup(&input.r);
+					}
+					break;
+			case C('H'): case '\x7f':  // Backspace
+				if(input.e != input.w){
+					input.e--;
+					consputc(BACKSPACE);
 				}
-			}
-			break;
+				break;
+			default:
+				if(c != 0 && input.e-input.r < INPUT_BUF){
+					c = (c == '\r') ? '\n' : c;
+					input.buf[input.e++ % INPUT_BUF] = c;
+					consputc(c);
+					if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
+						input.w = input.e;
+						wakeup(&input.r);
+					}
+				}
+				break;
 		}
 	}
 	release(&cons.lock);
@@ -239,4 +244,3 @@ consoleinit(void)
 
 	ioapicenable(IRQ_KBD, 0);
 }
-
